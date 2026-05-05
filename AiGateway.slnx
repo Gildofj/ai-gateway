@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AiGateway.Api/AiGateway.Api.csproj" />
+  </Folder>
+</Solution>
