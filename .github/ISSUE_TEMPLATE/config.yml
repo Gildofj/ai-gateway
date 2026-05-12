@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or discussion
+    url: https://github.com/gildofj/ai-gateway/discussions
+    about: Use Discussions for usage questions, design ideas, and "is this possible?" threads.
+  - name: Security vulnerability
+    url: https://github.com/gildofj/ai-gateway/blob/main/SECURITY.md
+    about: Do not file public issues for security problems. Follow the disclosure process.

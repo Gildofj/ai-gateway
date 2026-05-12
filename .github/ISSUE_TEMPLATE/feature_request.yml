@@ -1,0 +1,58 @@
+name: Feature request
+description: Propose a new capability for AI Gateway.
+title: "[Feature] "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, consider opening a [Discussion](https://github.com/gildofj/ai-gateway/discussions/categories/ideas) so the design can be debated openly.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What's the user-facing problem you're trying to solve? Avoid jumping to a solution.
+      placeholder: "When the primary provider rate-limits, the request fails instead of being retried with a backoff."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: A concrete sketch of the API, configuration, or behavior change.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you considered and why you discarded them.
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Where does this change live?
+      multiple: true
+      options:
+        - Core (interfaces / models)
+        - Features (agents, routing, prompt enhancement)
+        - Infrastructure (provider clients, decorators, config, cost)
+        - Skills (AIFunction tools)
+        - Program.cs (composition root)
+        - Docs / examples
+        - CI / build
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact on existing users
+      description: Is this backwards-compatible? Does it change a response shape, config key, or behavior?
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched issues and discussions for similar proposals.
+          required: true
+        - label: I have read CONTRIBUTING.md and understand the layering rules.
+          required: true

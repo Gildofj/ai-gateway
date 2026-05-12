@@ -1,27 +1,39 @@
 using AiGateway.Api.Core.Interfaces;
+using AiGateway.Api.Core.Models;
 using Microsoft.Extensions.AI;
 
 namespace AiGateway.Api.Features.PromptEnhancement;
 
 public class PromptEnhancer : IPromptEnhancer
 {
-    private readonly IChatClient _enhancementClient;
+    private readonly IChatClient _fastClient;
 
-    public PromptEnhancer([FromKeyedServices("fast-model")] IChatClient enhancementClient)
+    public PromptEnhancer(IProviderRegistry registry)
     {
-        _enhancementClient = enhancementClient;
+        var available = registry.GetAvailable();
+        if (available.Count == 0)
+            throw new InvalidOperationException("No AI providers configured.");
+
+        _fastClient = registry.CreateClient(available[0].Provider, ModelComplexity.Low);
     }
 
-    public async Task<string> EnhancePromptAsync(string initialPrompt, CancellationToken cancellationToken = default)
+    public async Task<string> EnhanceAsync(string prompt, string hint, CancellationToken cancellationToken = default)
     {
-        var systemMessage = new ChatMessage(ChatRole.System, 
-            "You are a Prompt Engineering expert. Your task is to take the user's prompt and rewrite it to be clearer, more specific, and better structured for an AI to understand. " +
-            "Do not answer the prompt, just return the improved prompt. Keep it concise but add necessary context if it's implicitly missing.");
+        var hintSection = string.IsNullOrWhiteSpace(hint)
+            ? string.Empty
+            : $" Pay special attention to: {hint}";
 
-        var userMessage = new ChatMessage(ChatRole.User, $"Enhance this prompt:\n{initialPrompt}");
+        var systemMessage = new ChatMessage(ChatRole.System,
+            "You are a prompt engineering expert. Rewrite the user's prompt to be clearer, more specific, and better structured. " +
+            "Do NOT answer it — return only the improved prompt. Remove ambiguity, add implicit context, keep it concise." +
+            hintSection);
 
-        var response = await _enhancementClient.GetResponseAsync(new[] { systemMessage, userMessage }, cancellationToken: cancellationToken);
-        
-        return response.Text ?? initialPrompt;
+        var response = await _fastClient.GetResponseAsync(
+        [
+            systemMessage,
+            new ChatMessage(ChatRole.User, $"Enhance:\n{prompt}")
+        ], cancellationToken: cancellationToken);
+
+        return response.Text ?? prompt;
     }
 }

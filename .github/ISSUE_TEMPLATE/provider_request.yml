@@ -1,0 +1,80 @@
+name: Provider request
+description: Request support for a new AI provider (e.g. Ollama, Mistral, Cohere).
+title: "[Provider] "
+labels: ["provider", "enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Each provider integration adds maintenance load. Please justify why it belongs in core vs. a community plugin.
+  - type: input
+    id: provider
+    attributes:
+      label: Provider name
+      placeholder: "Mistral, Ollama, Cohere, ..."
+    validations:
+      required: true
+  - type: input
+    id: docs
+    attributes:
+      label: Link to provider API documentation
+    validations:
+      required: true
+  - type: dropdown
+    id: compat
+    attributes:
+      label: OpenAI-compatible endpoint?
+      description: AI Gateway uses the OpenAI SDK with a custom endpoint for Gemini and Claude. If the provider exposes the same shape, integration is trivial.
+      options:
+        - "Yes — drop-in OpenAI-compatible"
+        - "Partial — needs adapter"
+        - "No — requires a separate SDK"
+        - "Not sure"
+    validations:
+      required: true
+  - type: dropdown
+    id: auth
+    attributes:
+      label: Authentication model
+      options:
+        - "API key in header"
+        - "OAuth"
+        - "mTLS"
+        - "None / local"
+        - "Other"
+    validations:
+      required: true
+  - type: textarea
+    id: models
+    attributes:
+      label: Suggested default models
+      description: "What should be the default `FastModel` and `CapableModel`?"
+      placeholder: |
+        FastModel: mistral-small-latest
+        CapableModel: mistral-large-latest
+    validations:
+      required: true
+  - type: textarea
+    id: pricing
+    attributes:
+      label: Pricing (per million tokens)
+      description: Needed for `CostTracker`.
+      placeholder: |
+        small: $0.20 input / $0.60 output
+        large: $2.00 input / $6.00 output
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Why should AI Gateway support this provider?
+      description: Cost, latency, on-prem, regulatory, model quality on a specific domain, ...
+    validations:
+      required: true
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      options:
+        - label: I have read `.agents/skills/add-provider.md` and understand the integration steps.
+          required: true
+        - label: I am willing to help test the integration.
+          required: false

@@ -12,8 +12,8 @@ public class ProviderOptimizationClient : DelegatingChatClient
     }
 
     public override async Task<ChatResponse> GetResponseAsync(
-        IEnumerable<ChatMessage> messages, 
-        ChatOptions? options = null, 
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         var messageList = messages.ToList();

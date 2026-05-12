@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"D:\\\\Projects\\\\ai-gateway\" -Recurse -Directory | Select-Object -First 30 | ForEach-Object { $_.FullName })",
+      "PowerShell(dotnet build *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet list *)"
+    ]
+  }
+}
