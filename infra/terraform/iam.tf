@@ -15,6 +15,7 @@ locals {
     "roles/run.admin",
     "roles/iam.serviceAccountUser",
     "roles/secretmanager.secretAccessor",
+    "roles/secretmanager.admin",
     "roles/logging.logWriter",
   ])
 }
