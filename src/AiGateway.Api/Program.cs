@@ -118,8 +118,8 @@ app.MapPost("/api/v1/chat/completions", async (
     var chatClient = router.GetClient(decision);
     var modelName = router.GetModelName(decision);
 
-    // 5. Inject domain agent system prompt
-    chatClient = new AgentOptimizationClient(chatClient, decision.SystemPromptFragment);
+    // 5. Inject domain agent system prompt (+ optional caller system instruction)
+    chatClient = new AgentOptimizationClient(chatClient, decision.SystemPromptFragment, request.SystemInstruction);
 
     // 6. Build tools from the skills required by this domain agent
     var chatOptions = new ChatOptions { ModelId = modelName };
@@ -127,6 +127,15 @@ app.MapPost("/api/v1/chat/completions", async (
     if (request.UseSkills && decision.RequiredSkills.Count > 0)
     {
         chatOptions.Tools = BuildTools(decision.RequiredSkills, memorySkill);
+    }
+
+    // 6b. Structured output: when the caller asks for application/json, enable
+    // either schema-bound JSON or plain JSON mode on the provider request.
+    if (string.Equals(request.ResponseMimeType, "application/json", StringComparison.OrdinalIgnoreCase))
+    {
+        chatOptions.ResponseFormat = request.ResponseSchema.HasValue
+            ? ChatResponseFormat.ForJsonSchema(request.ResponseSchema.Value)
+            : ChatResponseFormat.Json;
     }
 
     // 7. Execute

@@ -20,6 +20,9 @@ Run a chat completion through the full pipeline: analyze → select agent → en
 | `provider` | enum `AiProvider` | — | agent-selected | Force a provider (`OpenAi`, `Anthropic`, `Google`, `Ollama`). |
 | `enablePromptEnhancement` | bool | — | `true` | Run the `PromptEnhancer` step. |
 | `useSkills` | bool | — | `true` | Inject the agent's required skills as tools. |
+| `systemInstruction` | string | — | — | Extra system prompt appended after the domain agent's system fragment. Use for caller-specific persona or rules. |
+| `responseMimeType` | string | — | — | Set to `"application/json"` to enable structured JSON output. |
+| `responseSchema` | object (JSON Schema) | — | — | Raw JSON Schema constraining the response. Requires `responseMimeType: "application/json"`. When omitted with JSON mime type, the model returns plain JSON without schema enforcement. |
 
 > **Cost tip:** when both `domain` **and** `complexity` are provided, the gateway skips the AI classification call entirely (one fewer round-trip per request).
 
@@ -47,6 +50,31 @@ Content-Type: application/json
   "provider": "Anthropic",
   "enablePromptEnhancement": false,
   "useSkills": true
+}
+```
+
+#### Structured JSON output
+
+Use `responseMimeType` and `responseSchema` to force the model to return a JSON document matching a schema you define. `completion` will be a JSON-stringified value that the caller can parse safely.
+
+```http
+POST /api/v1/chat/completions
+Content-Type: application/json
+
+{
+  "prompt": "Summarize this quarterly report ...",
+  "domain": "Analysis",
+  "complexity": "High",
+  "systemInstruction": "Respond only with the JSON document, no surrounding prose.",
+  "responseMimeType": "application/json",
+  "responseSchema": {
+    "type": "object",
+    "properties": {
+      "summary": { "type": "string" },
+      "risks": { "type": "array", "items": { "type": "string" } }
+    },
+    "required": ["summary", "risks"]
+  }
 }
 ```
 

@@ -5,10 +5,15 @@ namespace AiGateway.Api.Infrastructure.AiProviders;
 public class AgentOptimizationClient : DelegatingChatClient
 {
     private readonly string _systemPromptFragment;
+    private readonly string? _callerSystemInstruction;
 
-    public AgentOptimizationClient(IChatClient innerClient, string systemPromptFragment) : base(innerClient)
+    public AgentOptimizationClient(
+        IChatClient innerClient,
+        string systemPromptFragment,
+        string? callerSystemInstruction = null) : base(innerClient)
     {
         _systemPromptFragment = systemPromptFragment;
+        _callerSystemInstruction = callerSystemInstruction;
     }
 
     public override async Task<Microsoft.Extensions.AI.ChatResponse> GetResponseAsync(
@@ -41,15 +46,17 @@ public class AgentOptimizationClient : DelegatingChatClient
 
     private void InjectSystemPrompt(List<ChatMessage> messages)
     {
+        var parts = new List<string> { _systemPromptFragment };
+        if (!string.IsNullOrWhiteSpace(_callerSystemInstruction))
+            parts.Add(_callerSystemInstruction);
+
         var existing = messages.FirstOrDefault(m => m.Role == ChatRole.System);
         if (existing is not null)
         {
             messages.Remove(existing);
-            messages.Insert(0, new ChatMessage(ChatRole.System, $"{_systemPromptFragment}\n\n{existing.Text}"));
+            parts.Add(existing.Text);
         }
-        else
-        {
-            messages.Insert(0, new ChatMessage(ChatRole.System, _systemPromptFragment));
-        }
+
+        messages.Insert(0, new ChatMessage(ChatRole.System, string.Join("\n\n", parts)));
     }
 }

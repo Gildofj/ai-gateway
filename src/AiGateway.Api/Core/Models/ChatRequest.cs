@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace AiGateway.Api.Core.Models;
@@ -21,4 +22,13 @@ public record ChatRequest
 
     [JsonPropertyName("useSkills")]
     public bool UseSkills { get; init; } = true;
+
+    [JsonPropertyName("systemInstruction")]
+    public string? SystemInstruction { get; init; }
+
+    [JsonPropertyName("responseMimeType")]
+    public string? ResponseMimeType { get; init; }
+
+    [JsonPropertyName("responseSchema")]
+    public JsonElement? ResponseSchema { get; init; }
 }
