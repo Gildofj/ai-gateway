@@ -1,6 +1,10 @@
 provider "google" {
   project = var.project_id
   region  = var.region
+
+  # Required for managing billing budgets via local ADC
+  user_project_override = true
+  billing_project       = var.project_id
 }
 
 data "google_project" "this" {}
