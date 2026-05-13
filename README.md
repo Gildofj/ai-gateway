@@ -11,7 +11,7 @@ A provider-agnostic AI gateway built on .NET 10 that classifies each prompt, pic
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Code of Conduct](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
-[Quickstart](#-quickstart) · [Architecture](docs/architecture.md) · [API Reference](docs/api-reference.md) · [Contributing](CONTRIBUTING.md) · [Roadmap](docs/roadmap.md)
+[Quickstart](#-quickstart) · [Architecture](docs/architecture.md) · [API Reference](docs/api-reference.md) · [Deploy](docs/deployment.md) · [Contributing](CONTRIBUTING.md) · [Roadmap](docs/roadmap.md)
 
 </div>
 
@@ -103,6 +103,30 @@ The gateway:
 4. Injected the coding system prompt + the `code` and `memory` skills.
 5. Returned the completion alongside cost and usage.
 
+### Run in Docker (optional)
+
+```bash
+docker build -t ai-gateway .
+docker run --rm -p 8080:8080 \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  ai-gateway
+# → http://localhost:8080
+```
+
+The same image is what gets deployed to Cloud Run. CI builds on a GitHub-hosted runner and pushes straight to Artifact Registry — no Cloud Build, designed to stay inside the free tier. See [deployment](docs/deployment.md).
+
+### With make
+
+If you have GNU Make installed, the bundled `Makefile` shortens every common command:
+
+```bash
+make           # show all targets
+make watch     # run with hot reload
+make docker-run
+make deploy-manual
+make logs-tail
+```
+
 ## 🧭 How it works
 
 ```
@@ -131,6 +155,7 @@ Full breakdown in [`docs/architecture.md`](docs/architecture.md).
 | [Getting Started](docs/getting-started.md) | Install, configure, first request |
 | [Architecture](docs/architecture.md) | Layers, pipeline, contracts, decorators |
 | [Configuration](docs/configuration.md) | Environment variables, model overrides |
+| [Deployment](docs/deployment.md) | Free-tier deploy to Google Cloud Run |
 | [API Reference](docs/api-reference.md) | Endpoints, request/response schema |
 | [Routing & Cost](docs/routing-and-cost.md) | How domains, complexity, and pricing work |
 | [Extending: Providers](docs/extending/providers.md) | Add a new AI provider |
@@ -138,6 +163,7 @@ Full breakdown in [`docs/architecture.md`](docs/architecture.md).
 | [Extending: Skills](docs/extending/skills.md) | Expose a new `AIFunction` tool |
 | [Roadmap](docs/roadmap.md) | Planned work, open questions |
 | [FAQ](docs/faq.md) | Common questions |
+| [Terraform](infra/terraform/README.md) | Platform infra as code |
 
 ## 🛡️ Security
 

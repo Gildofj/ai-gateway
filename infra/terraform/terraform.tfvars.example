@@ -1,0 +1,12 @@
+project_id   = "gildofj"
+region       = "us-central1"
+github_owner = "Gildofj"
+github_repo  = "AIGateway"
+
+# Required for the free-tier budget guardrail.
+# Run `gcloud billing accounts list` to find the ID.
+billing_account_id = "0X0X0X-XXXXXX-XXXXXX"
+alert_email        = "you@example.com"
+
+# Optional — defaults to $1 (any spend means free tier was missed)
+# monthly_budget_usd = 1

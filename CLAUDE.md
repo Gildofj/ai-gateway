@@ -26,7 +26,28 @@ dotnet run --project src/AiGateway.Api/AiGateway.Api.csproj
 
 # Run with hot reload
 dotnet watch --project src/AiGateway.Api/AiGateway.Api.csproj
+
+# Build container image (production parity)
+docker build -t ai-gateway .
+
+# Deploy to Cloud Run — CI lives in .github/workflows/deploy.yml (builds on a
+# GitHub runner, pushes to Artifact Registry, calls `gcloud run deploy`). No
+# Cloud Build, no paid builders.
+
+# Manual fallback for the same flow:
+make help              # list all dev/deploy targets
+make watch             # dotnet watch
+make docker-run        # build + run container locally
+make deploy            # build → push → deploy (uses current git SHA as tag)
+make deploy-manual     # same as deploy, pinned to :manual tag
+
+# Infrastructure as code (see infra/terraform/README.md)
+make tf-init
+make tf-plan
+make tf-apply
 ```
+
+Platform infra (APIs, Artifact Registry, deployer SA, WIF, secret containers) lives in `infra/terraform/`. The Cloud Run service itself is managed by the deploy pipeline, not Terraform.
 
 No test projects exist yet. The solution file is `AiGateway.slnx`.
 
@@ -121,6 +142,7 @@ API keys via `appsettings.json` or environment variables (env takes precedence):
 OPENAI_API_KEY      → AI:OpenAi:ApiKey
 GOOGLE_API_KEY      → AI:Google:ApiKey
 ANTHROPIC_API_KEY   → AI:Anthropic:ApiKey
+GATEWAY_API_KEY     → required X-API-Key header on /api/*  (skipped if unset in Development)
 ```
 
 Default model names are set in `appsettings.json` under `AI:{Provider}:FastModel` / `CapableModel` and can be overridden per environment. See `.env.example` for all available variables.

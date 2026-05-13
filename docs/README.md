@@ -14,6 +14,7 @@ Welcome. This folder is the canonical home for AI Gateway documentation. It is o
 
 - [Getting started](getting-started.md)
 - [Configuration](configuration.md)
+- [Deployment](deployment.md)
 - [API reference](api-reference.md)
 - [Routing & cost](routing-and-cost.md)
 - [FAQ](faq.md)

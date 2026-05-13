@@ -1,0 +1,15 @@
+.terraform/
+.terraform.tfstate.lock.info
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
+# Local overrides — values are environment-specific, not secret, but not tracked
+terraform.tfvars
+*.auto.tfvars
+*.auto.tfvars.json
+
+# Keep the lock file committed for reproducible plans
+!.terraform.lock.hcl

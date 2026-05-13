@@ -1,0 +1,168 @@
+# ---------------------------------------------------------------------------
+# .NET / C#
+# ---------------------------------------------------------------------------
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]uild/
+artifacts/
+PublishProfiles/
+publish/
+
+# Build results
+*.dll
+*.exe
+*.pdb
+*.cache
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.svclog
+*.scc
+*.tlog
+*.lastbuildstate
+*.unsuccessfulbuild
+*.binlog
+project.lock.json
+project.fragment.lock.json
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# Test results / coverage
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+.coverage
+.coverage.*
+htmlcov/
+
+# ASP.NET / static web assets
+**/wwwroot/lib/
+**/wwwroot/dist/
+*.staticwebassets.endpoints.json
+
+# Roslyn / Source generators
+.roslyn/
+*.GeneratedMSBuildEditorConfig.editorconfig
+*.AssemblyInfo.cs
+*.AssemblyAttributes.cs
+*.GlobalUsings.g.cs
+
+# ---------------------------------------------------------------------------
+# IDEs
+# ---------------------------------------------------------------------------
+
+# Visual Studio
+.vs/
+*.opensdf
+*.sdf
+*.psess
+*.vsp
+*.vspx
+*.sap
+
+# Rider / JetBrains
+.idea/
+*.iml
+*.sln.iml
+
+# ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# VS Code (keep shared config, ignore user-local)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+.history/
+*.code-workspace
+
+# ---------------------------------------------------------------------------
+# Secrets / env
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+secrets.json
+appsettings.*.local.json
+appsettings.Development.local.json
+*.pfx
+*.cer
+*.key
+
+# ---------------------------------------------------------------------------
+# Docker
+# ---------------------------------------------------------------------------
+*.dockerignore.local
+
+# ---------------------------------------------------------------------------
+# Terraform
+# ---------------------------------------------------------------------------
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# ---------------------------------------------------------------------------
+# OS
+# ---------------------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ---------------------------------------------------------------------------
+# Tooling / misc
+# ---------------------------------------------------------------------------
+*.swp
+*.swo
+*~
+node_modules/
+.tool-versions
+
+# Local Claude / agent scratch
+.claude/settings.local.json
