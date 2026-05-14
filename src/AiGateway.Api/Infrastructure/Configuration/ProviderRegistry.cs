@@ -96,26 +96,27 @@ public class ProviderRegistry : IProviderRegistry
         Uri? endpoint)
     {
         // In ASP.NET Core, IConfiguration automatically includes environment variables.
-        // If "AI:OpenAi:ApiKey" is not in appsettings, it looks for "AI__OpenAi__ApiKey".
-        // However, we also support direct environment variables like "OPENAI_API_KEY".
-        var apiKey = config[keyPath] ?? config[envVar];
+        // However, if appsettings.json has "ApiKey": "", it returns an empty string,
+        // which prevents the ?? operator from falling back to the environment variable.
+        var apiKey = config[keyPath];
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            apiKey = config[envVar];
+        }
 
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            logger.LogDebug("Provider {Provider} skipped: No key found at {Path} or {Env}", provider, keyPath, envVar);
             return;
         }
 
         if (apiKey.Contains("placeholder", StringComparison.OrdinalIgnoreCase))
         {
-            logger.LogDebug("Provider {Provider} skipped: Key is a placeholder.", provider);
             return;
         }
 
         var fastModel = config[$"{keyPath.Replace(":ApiKey", ":FastModel")}"] ?? defaultFast;
         var capableModel = config[$"{keyPath.Replace(":ApiKey", ":CapableModel")}"] ?? defaultCapable;
 
-        logger.LogInformation("Provider {Provider} discovered with model {Model}", provider, fastModel);
         providers.Add(new ProviderDescriptor(provider, apiKey, fastModel, capableModel, endpoint));
     }
 }

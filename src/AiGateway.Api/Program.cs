@@ -15,26 +15,6 @@ using GatewayResponse = AiGateway.Api.Core.Models.ChatResponse;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- START DIAGNOSTICS ---
-var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-var diagLogger = loggerFactory.CreateLogger("StartupDiagnostics");
-
-diagLogger.LogInformation("--- Environment Variables ---");
-foreach (System.Collections.DictionaryEntry de in Environment.GetEnvironmentVariables())
-{
-    var value = de.Value?.ToString();
-    var masked = string.IsNullOrEmpty(value) ? "EMPTY" : (value.Length > 8 ? value[..4] + "..." + value[^4..] : "****");
-    diagLogger.LogInformation("{Key} = {Value}", de.Key, masked);
-}
-
-diagLogger.LogInformation("--- Configuration Keys ---");
-foreach (var kvp in builder.Configuration.AsEnumerable())
-{
-    var masked = string.IsNullOrEmpty(kvp.Value) ? "EMPTY" : (kvp.Value.Length > 8 ? kvp.Value[..4] + "..." + kvp.Value[^4..] : "****");
-    diagLogger.LogInformation("{Key} = {Value}", kvp.Key, masked);
-}
-// --- END DIAGNOSTICS ---
-
 // Cloud Run / generic container runtimes inject PORT. Bind Kestrel to it
 // so the same image runs locally (PORT unset → launchSettings) and in the cloud.
 var port = Environment.GetEnvironmentVariable("PORT");
