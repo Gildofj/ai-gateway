@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Serialization;
 using AiGateway.Api.Core.Interfaces;
 using AiGateway.Api.Core.Models;
 using AiGateway.Api.Features.Agents;
@@ -21,6 +22,11 @@ if (!string.IsNullOrEmpty(port))
     builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 builder.Services.AddOpenApi();
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 builder.Services.AddSingleton<IProviderRegistry, ProviderRegistry>();
 builder.Services.AddSingleton<ITaskAnalyzer, TaskAnalyzer>();
