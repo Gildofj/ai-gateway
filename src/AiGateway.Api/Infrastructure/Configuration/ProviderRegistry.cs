@@ -31,11 +31,9 @@ public class ProviderRegistry : IProviderRegistry
 
         var options = descriptor.Endpoint is not null
             ? new OpenAIClientOptions { Endpoint = descriptor.Endpoint }
-            : null;
+            : new OpenAIClientOptions();
 
-        var client = options is not null
-            ? new OpenAI.Chat.ChatClient(modelId, credential, options).AsIChatClient()
-            : new OpenAI.Chat.ChatClient(modelId, credential).AsIChatClient();
+        var client = new OpenAI.Chat.ChatClient(modelId, credential, options).AsIChatClient();
 
         return client.AddProviderOptimizations(provider.ToString().ToLower());
     }
@@ -68,14 +66,14 @@ public class ProviderRegistry : IProviderRegistry
             envVar: "GOOGLE_API_KEY",
             defaultFast: "gemini-3.1-flash-lite",
             defaultCapable: "gemini-3.1-pro",
-            endpoint: new Uri("https://generativelanguage.googleapis.com/v1beta/openai/"));
+            endpoint: new Uri("https://generativelanguage.googleapis.com/v1beta/openai"));
 
         TryAdd(providers, config, logger, AiProvider.Anthropic,
             keyPath: "AI:Anthropic:ApiKey",
             envVar: "ANTHROPIC_API_KEY",
             defaultFast: "claude-haiku-4-5",
             defaultCapable: "claude-opus-4-7",
-            endpoint: new Uri("https://api.anthropic.com/v1/messages/openai/"));
+            endpoint: new Uri("https://api.anthropic.com/v1/messages/openai"));
 
         if (providers.Count == 0)
         {
