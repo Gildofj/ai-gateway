@@ -38,13 +38,13 @@ internal sealed class FakeChatClient : IChatClient
         return _handler(messages, options, cancellationToken);
     }
 
-    public IAsyncEnumerable<StreamingChatResponseUpdate> GetStreamingResponseAsync(
+    public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
     public ChatClientMetadata Metadata => new(null);
-    public TService? GetService<TService>(object? key = null) where TService : class => null;
+    public object? GetService(Type serviceType, object? serviceKey = null) => null;
     public void Dispose() { }
 }
