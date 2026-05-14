@@ -11,7 +11,7 @@ A provider-agnostic AI gateway built on .NET 10 that classifies each prompt, pic
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Code of Conduct](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
-[Quickstart](#-quickstart) · [Architecture](docs/architecture.md) · [API Reference](docs/api-reference.md) · [Deploy](docs/deployment.md) · [Contributing](CONTRIBUTING.md) · [Roadmap](docs/roadmap.md)
+[Quickstart](#-quickstart) · [Architecture](docs/architecture.md) · [API Reference](docs/api-reference.md) · [Deploy](docs/deployment.md) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -42,11 +42,6 @@ Different prompts deserve different models. Sending a "hi" to GPT‑4o is wastef
 | Per-provider optimizations (concise hints for Claude, tool guidance for Gemini) | ✅ |
 | Token usage and per-request cost estimate | ✅ |
 | OpenAPI / Swagger UI in development | ✅ |
-| Local Ollama provider | 🚧 planned |
-| Streaming responses | 🚧 planned |
-| Semantic caching | 🚧 planned |
-
-See the full [roadmap](docs/roadmap.md).
 
 ## 🚀 Quickstart
 
@@ -161,7 +156,6 @@ Full breakdown in [`docs/architecture.md`](docs/architecture.md).
 | [Extending: Providers](docs/extending/providers.md) | Add a new AI provider |
 | [Extending: Domain Agents](docs/extending/domain-agents.md) | Add a new task domain |
 | [Extending: Skills](docs/extending/skills.md) | Expose a new `AIFunction` tool |
-| [Roadmap](docs/roadmap.md) | Planned work, open questions |
 | [FAQ](docs/faq.md) | Common questions |
 | [Terraform](infra/terraform/README.md) | Platform infra as code |
 
@@ -194,4 +188,6 @@ Quick links:
 
 <div align="center">
 <sub>Built with care by <a href="https://gildofj.dev">Gildo FJ</a> and <a href="https://github.com/gildofj/ai-gateway/graphs/contributors">contributors</a>.</sub>
+</div>
+s</a>.</sub>
 </div>

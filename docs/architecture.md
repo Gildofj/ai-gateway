@@ -180,5 +180,3 @@ When the request specifies both `domain` and `complexity`, **the whole analyzer 
 - **No DI scopes inside the request handler** beyond `MemorySkill`. The pipeline is a straight sequence of method calls — easier to read than a chain of middlewares.
 - **No reflection-driven plugin discovery.** Domain agents and skills are registered explicitly in `Program.cs`.
 - **No streaming yet.** The endpoint returns a buffered `200 OK` JSON body.
-
-See the [roadmap](roadmap.md) for what's coming next.

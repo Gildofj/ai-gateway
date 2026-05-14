@@ -54,11 +54,11 @@ Warnings are signals. We treat them the same as errors so they cannot accumulate
 
 ## Does the gateway support streaming?
 
-Not yet. The endpoint returns a buffered `200 OK` JSON body. Streaming is on the [roadmap](roadmap.md).
+Not yet. The endpoint returns a buffered `200 OK` JSON body. Streaming is planned for a future release.
 
 ## Does the gateway support Ollama / local models?
 
-Not yet. The `AiProvider.Ollama` enum exists as a reservation. See the [roadmap](roadmap.md).
+Not yet. The `AiProvider.Ollama` enum exists as a reservation for future implementation.
 
 ## How do I run it in production?
 
@@ -70,7 +70,7 @@ Not yet. The `AiProvider.Ollama` enum exists as a reservation. See the [roadmap]
 
 ## Is there a JavaScript / Python SDK?
 
-Not officially. The endpoint is plain JSON over HTTP, so any language with an HTTP client works. SDKs may land once the API stabilizes — see the [roadmap](roadmap.md).
+Not officially. The endpoint is plain JSON over HTTP, so any language with an HTTP client works. SDKs are planned once the API stabilizes.
 
 ## Where do I get help?
 

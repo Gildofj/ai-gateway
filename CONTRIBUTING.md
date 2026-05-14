@@ -1,6 +1,6 @@
 # Contributing to AI Gateway
 
-First — thank you. AI Gateway is community-driven, and we welcome contributions of all sizes: a typo fix, a new provider integration, a benchmark, or a roadmap discussion.
+First — thank you. AI Gateway is community-driven, and we welcome contributions of all sizes: a typo fix, a new provider integration, a benchmark, or a new feature discussion.
 
 This document is the **shortest path** from an idea to a merged PR. Skim it once before you start.
 
@@ -130,7 +130,7 @@ fork → branch → code → build → test → commit → push → PR
 
 ### Tests
 
-Test infrastructure is still being set up — see the roadmap. When tests land, prefer:
+Test infrastructure is still being set up. When tests land, prefer:
 
 - **xUnit** for unit tests.
 - One assertion per test where practical.

@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.
 ### Added
 - Structured output on `POST /api/v1/chat/completions`: new request fields `systemInstruction` (extra system prompt appended after the domain agent fragment), `responseMimeType` (set to `"application/json"` to enable JSON mode), and `responseSchema` (raw JSON Schema bound to the response via `ChatResponseFormat.ForJsonSchema`).
 - Initial open-source documentation set: `README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `SUPPORT.md`, `AUTHORS`, `CHANGELOG.md`.
-- `docs/` guides: architecture, getting started, configuration, API reference, routing & cost, extending (providers, agents, skills), FAQ, roadmap.
+- `docs/` guides: architecture, getting started, configuration, API reference, routing & cost, extending (providers, agents, skills), FAQ.
 - `.github/` community templates: issue templates, pull request template, funding placeholder.
 
 ## [0.1.0] — 2026-05-12

@@ -116,7 +116,7 @@ Content-Type: application/json
 | `400 Bad Request` | Malformed JSON or unrecognized enum values. |
 | `500 Internal Server Error` | All providers failed and no fallback succeeded. The exception type indicates the cause: `InvalidOperationException` ("Primary provider X failed and no fallback provider is available") means every configured provider was exhausted. |
 
-> AI Gateway does not currently return structured error bodies. This will change in a future release — see the [roadmap](roadmap.md).
+> AI Gateway does not currently return structured error bodies. This is planned for a future release following RFC 9457.
 
 ## Enums
 
@@ -142,7 +142,7 @@ Low | High
 OpenAi | Anthropic | Google | Ollama
 ```
 
-`Ollama` is reserved and not yet implemented — see the [roadmap](roadmap.md).
+`Ollama` is reserved and not yet implemented.
 
 ## OpenAPI document
 

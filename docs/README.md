@@ -5,8 +5,8 @@ Welcome. This folder is the canonical home for AI Gateway documentation. It is o
 | Audience | Start here |
 |---|---|
 | **Operator / user** — wants to run the gateway and call it | [`getting-started.md`](getting-started.md) → [`configuration.md`](configuration.md) → [`api-reference.md`](api-reference.md) |
-| **Contributor** — wants to understand and extend the code | [`architecture.md`](architecture.md) → [`routing-and-cost.md`](routing-and-cost.md) → [`extending/`](extending/) |
-| **Maintainer** — wants the roadmap and governance | [`roadmap.md`](roadmap.md) → [`../CONTRIBUTING.md`](../CONTRIBUTING.md) |
+| **Contributor** — wants to understand and extend the code | [`architecture.md`](architecture.md) → [`internal-architecture.md`](internal-architecture.md) → [`routing-and-cost.md`](routing-and-cost.md) → [`extending/`](extending/) |
+| **Maintainer** — wants governance and standards | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) → [`../SECURITY.md`](../SECURITY.md) → [`../infra/terraform/README.md`](../infra/terraform/README.md) |
 
 ## Table of contents
 
@@ -25,10 +25,11 @@ Welcome. This folder is the canonical home for AI Gateway documentation. It is o
 - [Add a domain agent](extending/domain-agents.md)
 - [Add a skill](extending/skills.md)
 
-### Project
+### Project & Infrastructure
 
-- [Architecture](architecture.md)
-- [Roadmap](roadmap.md)
+- [Architecture (High-level)](architecture.md)
+- [Architecture (Internal & Patterns)](internal-architecture.md)
+- [Infrastructure (Terraform)](../infra/terraform/README.md)
 
 ## Conventions
 

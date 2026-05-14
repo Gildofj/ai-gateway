@@ -81,7 +81,7 @@ It logs a warning, asks `IProviderRegistry.GetNext()` for the next provider, and
 
 If the fallback also fails, the exception bubbles to the caller as a `500`.
 
-> Rate-limit errors (`429`) currently surface as `HttpRequestException` and trigger the same fallback. A dedicated backoff strategy is on the [roadmap](roadmap.md).
+> Rate-limit errors (`429`) currently surface as `HttpRequestException` and trigger the same fallback. A dedicated backoff strategy is planned.
 
 ## Cost estimation
 
