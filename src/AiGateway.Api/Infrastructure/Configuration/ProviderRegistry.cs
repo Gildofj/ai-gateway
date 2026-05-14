@@ -54,21 +54,21 @@ public class ProviderRegistry : IProviderRegistry
             keyPath: "AI:OpenAi:ApiKey",
             envVar: "OPENAI_API_KEY",
             defaultFast: "gpt-5.4-mini",
-            defaultCapable: "gpt-5.5",
+            defaultCapable: "gpt-5.5-thinking",
             endpoint: null);
 
         TryAdd(providers, config, AiProvider.Google,
             keyPath: "AI:Google:ApiKey",
             envVar: "GOOGLE_API_KEY",
-            defaultFast: "gemini-3.0-flash-preview",
-            defaultCapable: "gemini-3.1-pro-preview",
+            defaultFast: "gemini-3.1-flash-lite",
+            defaultCapable: "gemini-3.1-pro",
             endpoint: new Uri("https://generativelanguage.googleapis.com/v1beta/openai/"));
 
         TryAdd(providers, config, AiProvider.Anthropic,
             keyPath: "AI:Anthropic:ApiKey",
             envVar: "ANTHROPIC_API_KEY",
-            defaultFast: "claude-4-haiku",
-            defaultCapable: "claude-4-sonnet",
+            defaultFast: "claude-haiku-4-5",
+            defaultCapable: "claude-opus-4-7",
             endpoint: new Uri("https://api.anthropic.com/v1/messages/openai/"));
 
         return providers;

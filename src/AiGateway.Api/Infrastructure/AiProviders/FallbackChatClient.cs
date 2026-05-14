@@ -33,12 +33,15 @@ public class FallbackChatClient : DelegatingChatClient
         {
             return await base.GetResponseAsync(messages, options, cancellationToken);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex)
         {
-            return await TryFallbackAsync(messages, options, cancellationToken, ex.Message);
-        }
-        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
-        {
+            // Do not retry if the user explicitly cancelled the request
+            if (ex is OperationCanceledException && cancellationToken.IsCancellationRequested)
+                throw;
+
+            // This catch-all ensures that any error (404 Model Not Found, 401 Unauthorized, 500 Provider Error, etc.)
+            // triggers an intelligent swap to the next provider.
+            _logger.LogWarning(ex, "Provider {Current} failed. Attempting fallback.", _currentProvider);
             return await TryFallbackAsync(messages, options, cancellationToken, ex.Message);
         }
     }
