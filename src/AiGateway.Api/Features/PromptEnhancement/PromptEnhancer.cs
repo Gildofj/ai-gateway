@@ -8,13 +8,13 @@ public class PromptEnhancer : IPromptEnhancer
 {
     private readonly IChatClient _fastClient;
 
-    public PromptEnhancer(IProviderRegistry registry)
+    public PromptEnhancer(IProviderRegistry registry, ILogger<PromptEnhancer> logger)
     {
         var available = registry.GetAvailable();
         if (available.Count == 0)
             throw new InvalidOperationException("No AI providers configured.");
 
-        _fastClient = registry.CreateClient(available[0].Provider, ModelComplexity.Low);
+        _fastClient = registry.CreateResilientClient(available[0].Provider, ModelComplexity.Low, logger);
     }
 
     public async Task<string> EnhanceAsync(string prompt, string hint, CancellationToken cancellationToken = default)

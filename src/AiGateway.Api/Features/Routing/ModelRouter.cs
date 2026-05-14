@@ -18,8 +18,7 @@ public class ModelRouter : IModelRouter
 
     public IChatClient GetClient(RoutingDecision decision)
     {
-        var primary = _registry.CreateClient(decision.Provider, decision.Analysis.Complexity);
-        return new FallbackChatClient(primary, _registry, decision.Provider, decision.Analysis.Complexity, _fallbackLogger);
+        return _registry.CreateResilientClient(decision.Provider, decision.Analysis.Complexity, _fallbackLogger);
     }
 
     public string GetModelName(RoutingDecision decision)

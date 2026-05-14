@@ -40,6 +40,12 @@ public class ProviderRegistry : IProviderRegistry
         return client.AddProviderOptimizations(provider.ToString().ToLower());
     }
 
+    public IChatClient CreateResilientClient(AiProvider provider, ModelComplexity complexity, ILogger logger)
+    {
+        var primary = CreateClient(provider, complexity);
+        return new FallbackChatClient(primary, this, provider, complexity, logger);
+    }
+
     public ProviderDescriptor? GetNext(AiProvider current)
     {
         var others = _available.Where(d => d.Provider != current).ToList();

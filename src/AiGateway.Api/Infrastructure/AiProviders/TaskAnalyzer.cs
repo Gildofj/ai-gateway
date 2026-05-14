@@ -9,13 +9,13 @@ public class TaskAnalyzer : ITaskAnalyzer
 {
     private readonly IChatClient _fastClient;
 
-    public TaskAnalyzer(IProviderRegistry registry)
+    public TaskAnalyzer(IProviderRegistry registry, ILogger<TaskAnalyzer> logger)
     {
         var available = registry.GetAvailable();
         if (available.Count == 0)
             throw new InvalidOperationException("No AI providers are configured. Set at least one API key in appsettings or environment variables.");
 
-        _fastClient = registry.CreateClient(available[0].Provider, ModelComplexity.Low);
+        _fastClient = registry.CreateResilientClient(available[0].Provider, ModelComplexity.Low, logger);
     }
 
     public async Task<TaskAnalysis> AnalyzeAsync(string prompt, CancellationToken cancellationToken = default)

@@ -9,14 +9,14 @@ public class FallbackChatClient : DelegatingChatClient
     private readonly IProviderRegistry _registry;
     private readonly AiProvider _currentProvider;
     private readonly ModelComplexity _complexity;
-    private readonly ILogger<FallbackChatClient> _logger;
+    private readonly ILogger _logger;
 
     public FallbackChatClient(
         IChatClient innerClient,
         IProviderRegistry registry,
         AiProvider currentProvider,
         ModelComplexity complexity,
-        ILogger<FallbackChatClient> logger) : base(innerClient)
+        ILogger logger) : base(innerClient)
     {
         _registry = registry;
         _currentProvider = currentProvider;
