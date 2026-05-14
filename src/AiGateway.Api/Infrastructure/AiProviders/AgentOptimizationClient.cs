@@ -29,16 +29,20 @@ public class AgentOptimizationClient : DelegatingChatClient
 
     private static void PruneContext(List<ChatMessage> messages)
     {
-        if (messages.Count <= 10)
+        // 2026 Standards: Models like GPT-5 and Gemini 3.1 have huge context windows (400K - 2M).
+        // Aggressive pruning is no longer necessary. We only prune if it exceeds 100 messages
+        // to keep the immediate request overhead manageable while retaining most history.
+        if (messages.Count <= 100)
             return;
 
         var systemMessages = messages.Where(m => m.Role == ChatRole.System).ToList();
         var nonSystemMessages = messages.Where(m => m.Role != ChatRole.System).ToList();
 
-        if (nonSystemMessages.Count <= 8)
+        if (nonSystemMessages.Count <= 80)
             return;
 
-        var kept = nonSystemMessages.Skip(nonSystemMessages.Count - 6).ToList();
+        // Keep the last 60 non-system messages + all system messages
+        var kept = nonSystemMessages.Skip(nonSystemMessages.Count - 60).ToList();
         messages.Clear();
         messages.AddRange(systemMessages);
         messages.AddRange(kept);

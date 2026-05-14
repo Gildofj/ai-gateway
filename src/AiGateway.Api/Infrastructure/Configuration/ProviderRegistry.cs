@@ -27,8 +27,15 @@ public class ProviderRegistry : IProviderRegistry
             ?? _available.First();
 
         var modelId = complexity == ModelComplexity.High ? descriptor.CapableModel : descriptor.FastModel;
-        var credential = new ApiKeyCredential(descriptor.ApiKey);
 
+        if (provider == AiProvider.Google)
+        {
+            // Use the native Google AI SDK adapter for .NET (2026 version)
+            return new GenerativeAI.Microsoft.GenerativeAIChatClient(descriptor.ApiKey, modelId)
+                .AddProviderOptimizations(provider.ToString().ToLower());
+        }
+
+        var credential = new ApiKeyCredential(descriptor.ApiKey);
         var options = descriptor.Endpoint is not null
             ? new OpenAIClientOptions { Endpoint = descriptor.Endpoint }
             : new OpenAIClientOptions();
@@ -81,7 +88,7 @@ public class ProviderRegistry : IProviderRegistry
         }
         else
         {
-            logger.LogInformation("Successfully configured {Count} providers: {Providers}", 
+            logger.LogInformation("Successfully configured {Count} providers: {Providers}",
                 providers.Count, string.Join(", ", providers.Select(p => p.Provider)));
         }
 
