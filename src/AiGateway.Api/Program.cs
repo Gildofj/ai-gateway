@@ -99,76 +99,92 @@ app.MapPost("/api/v1/chat/completions", async (
     IPromptEnhancer enhancer,
     ICostTracker costTracker,
     MemorySkill memorySkill,
+    ILoggerFactory loggerFactory,
     CancellationToken cancellationToken) =>
 {
-    // 1. Analyze task — skip AI call if both domain and complexity are explicit
-    var analysis = (request.Domain.HasValue && request.Complexity.HasValue)
-        ? new TaskAnalysis(request.Domain.Value, request.Complexity.Value)
-        : await analyzer.AnalyzeAsync(request.Prompt, cancellationToken);
+    var logger = loggerFactory.CreateLogger("AiGateway.Api.ChatEndpoint");
 
-    // 2. Select domain agent → routing decision
-    var decision = agentSelector.Select(analysis, request.Provider);
-
-    // 3. Enhance prompt with domain-specific hint
-    var actualPrompt = request.Prompt;
-    string? enhancedPrompt = null;
-
-    if (request.EnablePromptEnhancement)
+    try
     {
-        var hint = agentSelector.GetEnhancementHint(analysis.Domain);
-        actualPrompt = await enhancer.EnhanceAsync(request.Prompt, hint, cancellationToken);
-        enhancedPrompt = actualPrompt;
+        // 1. Analyze task — skip AI call if both domain and complexity are explicit
+        var analysis = (request.Domain.HasValue && request.Complexity.HasValue)
+            ? new TaskAnalysis(request.Domain.Value, request.Complexity.Value)
+            : await analyzer.AnalyzeAsync(request.Prompt, cancellationToken);
+
+        // 2. Select domain agent → routing decision
+        var decision = agentSelector.Select(analysis, request.Provider);
+
+        // 3. Enhance prompt with domain-specific hint
+        var actualPrompt = request.Prompt;
+        string? enhancedPrompt = null;
+
+        if (request.EnablePromptEnhancement)
+        {
+            var hint = agentSelector.GetEnhancementHint(analysis.Domain);
+            actualPrompt = await enhancer.EnhanceAsync(request.Prompt, hint, cancellationToken);
+            enhancedPrompt = actualPrompt;
+        }
+
+        // 4. Get resilient client and model name
+        var chatClient = router.GetClient(decision);
+        var modelName = router.GetModelName(decision);
+
+        // 5. Inject domain agent system prompt (+ optional caller system instruction)
+        chatClient = new AgentOptimizationClient(chatClient, decision.SystemPromptFragment, request.SystemInstruction);
+
+        // 6. Build tools from the skills required by this domain agent
+        var chatOptions = new ChatOptions { ModelId = modelName };
+
+        if (request.UseSkills && decision.RequiredSkills.Count > 0)
+        {
+            chatOptions.Tools = BuildTools(decision.RequiredSkills, memorySkill);
+        }
+
+        // 6b. Structured output: when the caller asks for application/json, enable
+        // either schema-bound JSON or plain JSON mode on the provider request.
+        if (string.Equals(request.ResponseMimeType, "application/json", StringComparison.OrdinalIgnoreCase))
+        {
+            chatOptions.ResponseFormat = request.ResponseSchema.HasValue
+                ? ChatResponseFormat.ForJsonSchema(request.ResponseSchema.Value)
+                : ChatResponseFormat.Json;
+        }
+
+        // 7. Execute
+        var response = await chatClient.GetResponseAsync(actualPrompt, chatOptions, cancellationToken);
+
+        // 8. Track usage and cost
+        var usage = response.Usage is not null
+            ? new TokenUsage(
+                response.Usage.InputTokenCount ?? 0,
+                response.Usage.OutputTokenCount ?? 0,
+                response.Usage.TotalTokenCount ?? 0)
+            : null;
+
+        var estimatedCost = usage is not null
+            ? costTracker.EstimateCost(modelName, usage.InputTokens, usage.OutputTokens)
+            : (decimal?)null;
+
+        return Results.Ok(new GatewayResponse
+        {
+            Completion = response.Text ?? string.Empty,
+            ModelUsed = modelName,
+            ProviderUsed = decision.Provider,
+            Domain = analysis.Domain,
+            EnhancedPrompt = enhancedPrompt,
+            Usage = usage,
+            EstimatedCost = estimatedCost
+        });
     }
-
-    // 4. Get resilient client and model name
-    var chatClient = router.GetClient(decision);
-    var modelName = router.GetModelName(decision);
-
-    // 5. Inject domain agent system prompt (+ optional caller system instruction)
-    chatClient = new AgentOptimizationClient(chatClient, decision.SystemPromptFragment, request.SystemInstruction);
-
-    // 6. Build tools from the skills required by this domain agent
-    var chatOptions = new ChatOptions { ModelId = modelName };
-
-    if (request.UseSkills && decision.RequiredSkills.Count > 0)
+    catch (InvalidOperationException ex)
     {
-        chatOptions.Tools = BuildTools(decision.RequiredSkills, memorySkill);
+        logger.LogWarning(ex, "Gateway processing failed: {Message}", ex.Message);
+        return Results.Problem(ex.Message, statusCode: StatusCodes.Status500InternalServerError);
     }
-
-    // 6b. Structured output: when the caller asks for application/json, enable
-    // either schema-bound JSON or plain JSON mode on the provider request.
-    if (string.Equals(request.ResponseMimeType, "application/json", StringComparison.OrdinalIgnoreCase))
+    catch (Exception ex)
     {
-        chatOptions.ResponseFormat = request.ResponseSchema.HasValue
-            ? ChatResponseFormat.ForJsonSchema(request.ResponseSchema.Value)
-            : ChatResponseFormat.Json;
+        logger.LogError(ex, "Unexpected error in chat completions");
+        return Results.Problem("An unexpected error occurred while processing your request.", statusCode: StatusCodes.Status500InternalServerError);
     }
-
-    // 7. Execute
-    var response = await chatClient.GetResponseAsync(actualPrompt, chatOptions, cancellationToken);
-
-    // 8. Track usage and cost
-    var usage = response.Usage is not null
-        ? new TokenUsage(
-            response.Usage.InputTokenCount ?? 0,
-            response.Usage.OutputTokenCount ?? 0,
-            response.Usage.TotalTokenCount ?? 0)
-        : null;
-
-    var estimatedCost = usage is not null
-        ? costTracker.EstimateCost(modelName, usage.InputTokens, usage.OutputTokens)
-        : (decimal?)null;
-
-    return Results.Ok(new GatewayResponse
-    {
-        Completion = response.Text ?? string.Empty,
-        ModelUsed = modelName,
-        ProviderUsed = decision.Provider,
-        Domain = analysis.Domain,
-        EnhancedPrompt = enhancedPrompt,
-        Usage = usage,
-        EstimatedCost = estimatedCost
-    });
 })
 .WithName("CreateChatCompletion");
 

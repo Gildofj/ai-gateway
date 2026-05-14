@@ -10,10 +10,10 @@ public class CostTracker : ICostTracker
         {
             var m when m.Contains("gpt-5.4-mini") => (input: 0.75m, output: 4.50m),
             var m when m.Contains("gpt-5.5") => (input: 5.00m, output: 30.00m),
-            var m when m.Contains("gemini-3.0-flash") => (input: 0.50m, output: 3.00m),
+            var m when m.Contains("gemini-3.0-flash") || m.Contains("gemini-3.1-flash") => (input: 0.50m, output: 3.00m),
             var m when m.Contains("gemini-3.1-pro") => (input: 2.00m, output: 12.00m),
-            var m when m.Contains("claude-4-haiku") => (input: 1.00m, output: 5.00m),
-            var m when m.Contains("claude-4-sonnet") => (input: 3.00m, output: 15.00m),
+            var m when m.Contains("claude-4-haiku") || m.Contains("claude-haiku-4") => (input: 1.00m, output: 5.00m),
+            var m when m.Contains("claude-4-sonnet") || m.Contains("claude-opus-4") => (input: 3.00m, output: 15.00m),
             _ => (input: 1.00m, output: 3.00m)
         };
 
