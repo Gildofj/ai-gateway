@@ -11,9 +11,9 @@ public class ProviderRegistry : IProviderRegistry
 {
     private readonly List<ProviderDescriptor> _available;
 
-    public ProviderRegistry(IConfiguration configuration)
+    public ProviderRegistry(IConfiguration configuration, ILogger<ProviderRegistry> logger)
     {
-        _available = DiscoverProviders(configuration);
+        _available = DiscoverProviders(configuration, logger);
     }
 
     public IReadOnlyList<ProviderDescriptor> GetAvailable() => _available;
@@ -46,30 +46,40 @@ public class ProviderRegistry : IProviderRegistry
         return others.FirstOrDefault();
     }
 
-    private static List<ProviderDescriptor> DiscoverProviders(IConfiguration config)
+    private static List<ProviderDescriptor> DiscoverProviders(IConfiguration config, ILogger<ProviderRegistry> logger)
     {
         var providers = new List<ProviderDescriptor>();
 
-        TryAdd(providers, config, AiProvider.OpenAi,
+        TryAdd(providers, config, logger, AiProvider.OpenAi,
             keyPath: "AI:OpenAi:ApiKey",
             envVar: "OPENAI_API_KEY",
             defaultFast: "gpt-5.4-mini",
             defaultCapable: "gpt-5.5-thinking",
             endpoint: null);
 
-        TryAdd(providers, config, AiProvider.Google,
+        TryAdd(providers, config, logger, AiProvider.Google,
             keyPath: "AI:Google:ApiKey",
             envVar: "GOOGLE_API_KEY",
             defaultFast: "gemini-3.1-flash-lite",
             defaultCapable: "gemini-3.1-pro",
             endpoint: new Uri("https://generativelanguage.googleapis.com/v1beta/openai/"));
 
-        TryAdd(providers, config, AiProvider.Anthropic,
+        TryAdd(providers, config, logger, AiProvider.Anthropic,
             keyPath: "AI:Anthropic:ApiKey",
             envVar: "ANTHROPIC_API_KEY",
             defaultFast: "claude-haiku-4-5",
             defaultCapable: "claude-opus-4-7",
             endpoint: new Uri("https://api.anthropic.com/v1/messages/openai/"));
+
+        if (providers.Count == 0)
+        {
+            logger.LogError("No AI providers were configured! Check environment variables: OPENAI_API_KEY, GOOGLE_API_KEY, ANTHROPIC_API_KEY.");
+        }
+        else
+        {
+            logger.LogInformation("Successfully configured {Count} providers: {Providers}", 
+                providers.Count, string.Join(", ", providers.Select(p => p.Provider)));
+        }
 
         return providers;
     }
@@ -77,6 +87,7 @@ public class ProviderRegistry : IProviderRegistry
     private static void TryAdd(
         List<ProviderDescriptor> providers,
         IConfiguration config,
+        ILogger<ProviderRegistry> logger,
         AiProvider provider,
         string keyPath,
         string envVar,
@@ -84,14 +95,27 @@ public class ProviderRegistry : IProviderRegistry
         string defaultCapable,
         Uri? endpoint)
     {
-        var apiKey = config[keyPath] ?? Environment.GetEnvironmentVariable(envVar);
+        // In ASP.NET Core, IConfiguration automatically includes environment variables.
+        // If "AI:OpenAi:ApiKey" is not in appsettings, it looks for "AI__OpenAi__ApiKey".
+        // However, we also support direct environment variables like "OPENAI_API_KEY".
+        var apiKey = config[keyPath] ?? config[envVar];
 
-        if (string.IsNullOrWhiteSpace(apiKey) || apiKey.Contains("placeholder", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            logger.LogDebug("Provider {Provider} skipped: No key found at {Path} or {Env}", provider, keyPath, envVar);
             return;
+        }
+
+        if (apiKey.Contains("placeholder", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogDebug("Provider {Provider} skipped: Key is a placeholder.", provider);
+            return;
+        }
 
         var fastModel = config[$"{keyPath.Replace(":ApiKey", ":FastModel")}"] ?? defaultFast;
         var capableModel = config[$"{keyPath.Replace(":ApiKey", ":CapableModel")}"] ?? defaultCapable;
 
+        logger.LogInformation("Provider {Provider} discovered with model {Model}", provider, fastModel);
         providers.Add(new ProviderDescriptor(provider, apiKey, fastModel, capableModel, endpoint));
     }
 }

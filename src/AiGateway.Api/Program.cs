@@ -48,8 +48,6 @@ builder.Services.AddScoped<MemorySkill>();
 
 var app = builder.Build();
 
-app.UseDeveloperExceptionPage();
-
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
