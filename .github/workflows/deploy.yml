@@ -123,7 +123,7 @@ jobs:
             --min-instances=0 \
             --max-instances=2 \
             --timeout=60 \
-            --set-env-vars=ASPNETCORE_ENVIRONMENT=Production \
+            --set-env-vars=ASPNETCORE_ENVIRONMENT=Production,GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }} \
             --set-secrets=OPENAI_API_KEY=OPENAI_API_KEY:latest,GOOGLE_API_KEY=GOOGLE_API_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,GATEWAY_API_KEY=GATEWAY_API_KEY:latest
 
       - name: Print service URL
