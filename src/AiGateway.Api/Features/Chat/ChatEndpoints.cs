@@ -83,6 +83,8 @@ public static class ChatEndpoints
                     request.Provider ?? session?.Provider,
                     isPinned: request.Provider.HasValue);
 
+                decision = RerouteForStructuredOutput(decision, request, registry, logger);
+
                 var actualPrompt = request.Prompt;
                 string? enhancedPrompt = null;
 
@@ -110,9 +112,19 @@ public static class ChatEndpoints
                 ChatResponseFormat? responseFormat = null;
                 if (string.Equals(request.ResponseMimeType, "application/json", StringComparison.OrdinalIgnoreCase))
                 {
-                    responseFormat = request.ResponseSchema.HasValue
-                        ? ChatResponseFormat.ForJsonSchema(request.ResponseSchema.Value)
-                        : ChatResponseFormat.Json;
+                    var schemaUnsupported = decision.Provider == AiProvider.Anthropic && request.ResponseSchema.HasValue;
+                    if (schemaUnsupported)
+                    {
+                        logger.LogWarning(
+                            "Anthropic's OpenAI-compatible endpoint does not support response_format json_schema. Falling back to plain JSON mode.");
+                        responseFormat = ChatResponseFormat.Json;
+                    }
+                    else
+                    {
+                        responseFormat = request.ResponseSchema.HasValue
+                            ? ChatResponseFormat.ForJsonSchema(request.ResponseSchema.Value)
+                            : ChatResponseFormat.Json;
+                    }
                 }
 
                 AiProvider providerUsed = decision.Provider;
@@ -221,13 +233,45 @@ public static class ChatEndpoints
                     detail: ex.Message,
                     statusCode: ex.Status >= 400 && ex.Status < 600 ? ex.Status : StatusCodes.Status502BadGateway);
             }
+            catch (InvalidOperationException ex) when (ex.Message.StartsWith("All AI providers failed", StringComparison.Ordinal))
+            {
+                logger.LogError(ex, "All providers failed for chat completion.");
+                return Results.Problem(
+                    title: "All providers failed",
+                    detail: ex.InnerException?.Message ?? ex.Message,
+                    statusCode: StatusCodes.Status502BadGateway);
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Unexpected error in chat completions");
-                return Results.Problem("An unexpected error occurred while processing your request.", statusCode: StatusCodes.Status500InternalServerError);
+                return Results.Problem(
+                    title: "Unexpected error",
+                    detail: ex.Message,
+                    statusCode: StatusCodes.Status500InternalServerError);
             }
         })
         .WithName("CreateChatCompletion");
+    }
+
+    private static RoutingDecision RerouteForStructuredOutput(
+        RoutingDecision decision,
+        ChatRequest request,
+        IProviderRegistry registry,
+        ILogger logger)
+    {
+        if (!request.ResponseSchema.HasValue) return decision;
+        if (decision.IsProviderPinned) return decision;
+        if (decision.Provider != AiProvider.Anthropic) return decision;
+
+        AiProvider[] schemaCapable = [AiProvider.Google, AiProvider.OpenAi];
+        AiProvider? replacement = schemaCapable.Cast<AiProvider?>().FirstOrDefault(p => registry.IsAvailable(p!.Value));
+        if (replacement is null) return decision;
+
+        logger.LogInformation(
+            "Rerouting structured-output request from {From} to {To} (Anthropic OpenAI-compat does not support response_format json_schema).",
+            decision.Provider, replacement);
+
+        return decision with { Provider = replacement.Value };
     }
 
     private static List<AITool> BuildTools(IReadOnlyList<string> requiredSkills, MemorySkill memorySkill)

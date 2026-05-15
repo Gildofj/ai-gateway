@@ -177,14 +177,14 @@ public class ProviderRegistry : IProviderRegistry
             keyPath: "AI:OpenAi:ApiKey",
             envVar: "OPENAI_API_KEY",
             defaultFast: "gpt-5.4-mini",
-            defaultCapable: "gpt-5.5-thinking",
+            defaultCapable: "gpt-5.5-pro",
             endpoint: null);
 
         TryAdd(providers, config, AiProvider.Google,
             keyPath: "AI:Google:ApiKey",
             envVar: "GOOGLE_API_KEY",
             defaultFast: "gemini-3.1-flash-lite",
-            defaultCapable: "gemini-3.1-pro",
+            defaultCapable: "gemini-3.1-pro-preview",
             endpoint: null);
 
         TryAdd(providers, config, AiProvider.Anthropic,
