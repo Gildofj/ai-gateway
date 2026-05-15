@@ -4,4 +4,5 @@ public record RoutingDecision(
     TaskAnalysis Analysis,
     AiProvider Provider,
     string SystemPromptFragment,
-    IReadOnlyList<string> RequiredSkills);
+    IReadOnlyList<string> RequiredSkills,
+    bool IsProviderPinned = false);

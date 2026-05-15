@@ -7,17 +7,15 @@ namespace AiGateway.Api.Infrastructure.AiProviders;
 
 public class TaskAnalyzer : ITaskAnalyzer
 {
-    private readonly IChatClient _fastClient;
+    private readonly IProviderRegistry _registry;
     private readonly ILogger<TaskAnalyzer> _logger;
 
     public TaskAnalyzer(IProviderRegistry registry, ILogger<TaskAnalyzer> logger)
     {
+        _registry = registry;
         _logger = logger;
-        var available = registry.GetAvailable();
-        if (available.Count == 0)
+        if (registry.GetAvailable().Count == 0)
             throw new InvalidOperationException("No AI providers are configured. Set at least one API key in appsettings or environment variables.");
-
-        _fastClient = registry.CreateResilientClient(available[0].Provider, ModelComplexity.Low, logger);
     }
 
     public async Task<TaskAnalysis> AnalyzeAsync(string prompt, CancellationToken cancellationToken = default)
@@ -65,18 +63,26 @@ public class TaskAnalyzer : ITaskAnalyzer
                 "Math/statistics → domain=Math, complexity=High\n" +
                 "Return ONLY the JSON object, no markdown, no explanation.";
 
-            var response = await _fastClient.GetResponseAsync(
-            [
-                new ChatMessage(ChatRole.System, systemPrompt),
-                new ChatMessage(ChatRole.User, $"Classify: {prompt}")
-            ], cancellationToken: cancellationToken);
+            var preferred = _registry.GetAvailable()[0].Provider;
+            var response = await _registry.ExecuteAsync(
+                preferred,
+                ModelComplexity.Low,
+                async ctx =>
+                {
+                    var options = new ChatOptions { ModelId = ctx.ModelName };
+                    return await ctx.Client.GetResponseAsync(
+                    [
+                        new ChatMessage(ChatRole.System, systemPrompt),
+                        new ChatMessage(ChatRole.User, $"Classify: {prompt}")
+                    ], options, cancellationToken);
+                },
+                allowFallback: true,
+                cancellationToken: cancellationToken);
 
             return ParseAiResponse(response.Text);
         }
         catch (Exception ex)
         {
-            // If AI analysis fails (e.g. 401 on OpenAI or 411 on Google), 
-            // we log it and fall back to General/Low to avoid failing the entire request.
             _logger.LogWarning(ex, "AI task analysis failed. Falling back to General/Low.");
             return new TaskAnalysis(TaskDomain.General, ModelComplexity.Low);
         }

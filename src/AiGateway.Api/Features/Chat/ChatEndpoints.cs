@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.AI;
+using System.ClientModel;
 using System.Text.Json;
 using GatewayResponse = AiGateway.Api.Core.Models.ChatResponse;
 
@@ -22,7 +23,7 @@ public static class ChatEndpoints
             ChatRequest request,
             ITaskAnalyzer analyzer,
             AgentSelector agentSelector,
-            IModelRouter router,
+            IProviderRegistry registry,
             IPromptEnhancer enhancer,
             ICostTracker costTracker,
             MemorySkill memorySkill,
@@ -35,10 +36,17 @@ public static class ChatEndpoints
         {
             var logger = loggerFactory.CreateLogger("AiGateway.Api.ChatEndpoint");
 
-            // Update AppId from request if provided
             if (!string.IsNullOrEmpty(request.AppId))
             {
                 httpContext.Items["AppId"] = request.AppId;
+            }
+
+            if (request.Provider.HasValue && !registry.IsConfigured(request.Provider.Value))
+            {
+                return Results.Problem(
+                    title: "Provider not configured",
+                    detail: $"Provider '{request.Provider.Value}' is not configured on this gateway. Configure its API key or omit the field to let the gateway auto-select.",
+                    statusCode: StatusCodes.Status400BadRequest);
             }
 
             try
@@ -56,7 +64,6 @@ public static class ChatEndpoints
                     }
                 }
 
-                // 1. Analyze task — reuse session decision or skip if explicit
                 var domain = request.Domain ?? session?.Domain;
                 var complexity = request.Complexity ?? session?.Complexity;
 
@@ -70,10 +77,12 @@ public static class ChatEndpoints
                     analysis = await analyzer.AnalyzeAsync(request.Prompt, cancellationToken);
                 }
 
-                // 2. Select domain agent → routing decision
-                var (decision, agentScope) = await agentSelector.SelectAsync(analysis, request.AgentId ?? session?.AgentId, request.Provider ?? session?.Provider);
+                var (decision, agentScope) = await agentSelector.SelectAsync(
+                    analysis,
+                    request.AgentId ?? session?.AgentId,
+                    request.Provider ?? session?.Provider,
+                    isPinned: request.Provider.HasValue);
 
-                // 3. Enhance prompt with domain-specific hint
                 var actualPrompt = request.Prompt;
                 string? enhancedPrompt = null;
 
@@ -84,29 +93,6 @@ public static class ChatEndpoints
                     enhancedPrompt = actualPrompt;
                 }
 
-                // 4. Get resilient client and model name
-                var chatClient = router.GetClient(decision);
-                var modelName = router.GetModelName(decision);
-
-                // 5. Inject domain agent system prompt (+ optional caller system instruction)
-                chatClient = new AgentOptimizationClient(chatClient, decision.SystemPromptFragment, request.SystemInstruction);
-
-                // 6. Build tools from the skills required by this domain agent
-                var chatOptions = new ChatOptions { ModelId = modelName };
-
-                if (request.UseSkills && decision.RequiredSkills.Count > 0)
-                {
-                    chatOptions.Tools = BuildTools(decision.RequiredSkills, memorySkill);
-                }
-
-                if (string.Equals(request.ResponseMimeType, "application/json", StringComparison.OrdinalIgnoreCase))
-                {
-                    chatOptions.ResponseFormat = request.ResponseSchema.HasValue
-                        ? ChatResponseFormat.ForJsonSchema(request.ResponseSchema.Value)
-                        : ChatResponseFormat.Json;
-                }
-
-                // 7. Prepare messages (including session history)
                 var messages = new List<ChatMessage>();
                 if (session != null)
                 {
@@ -117,15 +103,48 @@ public static class ChatEndpoints
                 }
                 messages.Add(new ChatMessage(ChatRole.User, actualPrompt));
 
-                // 8. Execute
-                var response = await chatClient.GetResponseAsync(messages, chatOptions, cancellationToken);
+                var tools = request.UseSkills && decision.RequiredSkills.Count > 0
+                    ? BuildTools(decision.RequiredSkills, memorySkill)
+                    : null;
 
-                // 9. Update session
+                ChatResponseFormat? responseFormat = null;
+                if (string.Equals(request.ResponseMimeType, "application/json", StringComparison.OrdinalIgnoreCase))
+                {
+                    responseFormat = request.ResponseSchema.HasValue
+                        ? ChatResponseFormat.ForJsonSchema(request.ResponseSchema.Value)
+                        : ChatResponseFormat.Json;
+                }
+
+                AiProvider providerUsed = decision.Provider;
+                string modelUsed = string.Empty;
+
+                var response = await registry.ExecuteAsync(
+                    decision.Provider,
+                    decision.Analysis.Complexity,
+                    async ctx =>
+                    {
+                        providerUsed = ctx.Provider;
+                        modelUsed = ctx.ModelName;
+
+                        var optimized = new AgentOptimizationClient(
+                            ctx.Client,
+                            decision.SystemPromptFragment,
+                            request.SystemInstruction);
+
+                        var options = new ChatOptions { ModelId = ctx.ModelName };
+                        if (tools is not null) options.Tools = tools;
+                        if (responseFormat is not null) options.ResponseFormat = responseFormat;
+
+                        return await optimized.GetResponseAsync(messages, options, cancellationToken);
+                    },
+                    allowFallback: !decision.IsProviderPinned,
+                    cancellationToken: cancellationToken);
+
                 if (!string.IsNullOrEmpty(sessionId))
                 {
                     var ttlMinutes = configuration.GetValue("SESSION_TTL_MINUTES", 30);
                     var now = DateTime.UtcNow;
-                    
+
                     if (session == null)
                     {
                         session = new Session
@@ -133,7 +152,7 @@ public static class ChatEndpoints
                             Id = sessionId,
                             Domain = analysis.Domain,
                             Complexity = analysis.Complexity,
-                            Provider = decision.Provider,
+                            Provider = providerUsed,
                             AgentId = request.AgentId,
                             CreatedAt = now,
                             UpdatedAt = now,
@@ -143,27 +162,25 @@ public static class ChatEndpoints
                     }
                     else
                     {
-                        session = session with 
-                        { 
-                            UpdatedAt = now, 
-                            ExpiresAt = now.AddMinutes(ttlMinutes) 
+                        session = session with
+                        {
+                            UpdatedAt = now,
+                            ExpiresAt = now.AddMinutes(ttlMinutes)
                         };
                     }
 
                     session.Turns.Add(new SessionTurn { Role = "user", Content = request.Prompt, Timestamp = now });
                     session.Turns.Add(new SessionTurn { Role = "assistant", Content = response.Text ?? string.Empty, Timestamp = now });
 
-                    // Keep only last 6 turns (matching AgentOptimizationClient context-pruning suggestion)
                     if (session.Turns.Count > 6)
                     {
                         session.Turns.RemoveRange(0, session.Turns.Count - 6);
                     }
-                    
+
                     session = session with { TurnCount = session.Turns.Count };
                     await sessionStore.UpsertAsync(session);
                 }
 
-                // 10. Track usage and cost
                 var usage = response.Usage is not null
                     ? new TokenUsage(
                         response.Usage.InputTokenCount ?? 0,
@@ -172,14 +189,14 @@ public static class ChatEndpoints
                     : null;
 
                 var estimatedCost = usage is not null
-                    ? costTracker.EstimateCost(modelName, usage.InputTokens, usage.OutputTokens)
+                    ? costTracker.EstimateCost(modelUsed, usage.InputTokens, usage.OutputTokens)
                     : (decimal?)null;
 
                 return Results.Ok(new GatewayResponse
                 {
                     Completion = response.Text ?? string.Empty,
-                    ModelUsed = modelName,
-                    ProviderUsed = decision.Provider,
+                    ModelUsed = modelUsed,
+                    ProviderUsed = providerUsed,
                     Domain = analysis.Domain,
                     EnhancedPrompt = enhancedPrompt,
                     Usage = usage,
@@ -188,6 +205,21 @@ public static class ChatEndpoints
                     AppId = appContext.AppId,
                     AgentScope = agentScope
                 });
+            }
+            catch (ProviderNotConfiguredException ex)
+            {
+                return Results.Problem(
+                    title: "Provider not configured",
+                    detail: ex.Message,
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+            catch (ClientResultException ex)
+            {
+                logger.LogWarning(ex, "Pinned provider returned an error.");
+                return Results.Problem(
+                    title: "Provider error",
+                    detail: ex.Message,
+                    statusCode: ex.Status >= 400 && ex.Status < 600 ? ex.Status : StatusCodes.Status502BadGateway);
             }
             catch (Exception ex)
             {

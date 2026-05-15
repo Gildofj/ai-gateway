@@ -16,7 +16,7 @@ public class AgentSelector
         _customAgentStore = customAgentStore;
     }
 
-    public async Task<(RoutingDecision decision, string scope)> SelectAsync(TaskAnalysis analysis, string? agentId = null, AiProvider? explicitProvider = null)
+    public async Task<(RoutingDecision decision, string scope)> SelectAsync(TaskAnalysis analysis, string? agentId = null, AiProvider? explicitProvider = null, bool isPinned = false)
     {
         IDomainAgent? agent = null;
         string scope = "built-in";
@@ -46,7 +46,7 @@ public class AgentSelector
 
         var provider = explicitProvider ?? ResolveProvider(agent);
 
-        return (new RoutingDecision(analysis, provider, agent.SystemPromptFragment, agent.RequiredSkills), scope);
+        return (new RoutingDecision(analysis, provider, agent.SystemPromptFragment, agent.RequiredSkills, isPinned), scope);
     }
 
     public string GetEnhancementHint(TaskDomain domain)

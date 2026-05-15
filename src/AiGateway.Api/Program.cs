@@ -9,7 +9,6 @@ using AiGateway.Api.Features.Chat;
 using AiGateway.Api.Features.Embeddings;
 using AiGateway.Api.Features.Memory;
 using AiGateway.Api.Features.PromptEnhancement;
-using AiGateway.Api.Features.Routing;
 using AiGateway.Api.Features.Sessions;
 using AiGateway.Api.Infrastructure.AiProviders;
 using AiGateway.Api.Infrastructure.Configuration;
@@ -69,7 +68,6 @@ builder.Services.AddSingleton<IDomainAgent, ConversationAgent>();
 builder.Services.AddSingleton<IDomainAgent, GeneralAgent>();
 builder.Services.AddScoped<AgentSelector>();
 
-builder.Services.AddSingleton<IModelRouter, ModelRouter>();
 builder.Services.AddSingleton<IPromptEnhancer, PromptEnhancer>();
 builder.Services.AddSingleton<ICostTracker, CostTracker>();
 builder.Services.AddScoped<MemorySkill>();
