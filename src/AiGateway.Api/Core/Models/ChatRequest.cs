@@ -31,4 +31,13 @@ public record ChatRequest
 
     [JsonPropertyName("responseSchema")]
     public JsonElement? ResponseSchema { get; init; }
+
+    [JsonPropertyName("agentId")]
+    public string? AgentId { get; init; }
+
+    [JsonPropertyName("sessionId")]
+    public string? SessionId { get; init; }
+
+    [JsonPropertyName("appId")]
+    public string? AppId { get; init; }
 }

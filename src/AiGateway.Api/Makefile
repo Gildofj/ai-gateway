@@ -1,14 +1,6 @@
 # AI Gateway — developer Makefile
 # Run `make` or `make help` to see all targets.
 
-# Windows make defaults to cmd.exe, which doesn't understand POSIX recipes
-# (`[ -f ... ]`, `2>/dev/null`, line continuations). Force Git Bash when present.
-# The 8.3 short path avoids the space in "Program Files".
-ifeq ($(OS),Windows_NT)
-    SHELL := C:/PROGRA~1/Git/bin/bash.exe
-    .SHELLFLAGS := -c
-endif
-
 # ---- Configuration ----------------------------------------------------------
 
 PROJECT_DIR  := src/AiGateway.Api
@@ -86,8 +78,11 @@ docker-build: ## Build the production container image
 	docker build -t $(IMAGE_NAME):$(TAG) -t $(IMAGE_NAME):latest .
 
 docker-run: preflight docker-build ## Build & run the container on $(PORT) with .env loaded
-	@docker run --rm -p $(PORT):8080 \
-		--env-file .env \
+	docker run --rm -p $(PORT):8080 \
+		-e OPENAI_API_KEY="$(OPENAI_API_KEY)" \
+		-e GOOGLE_API_KEY="$(GOOGLE_API_KEY)" \
+		-e ANTHROPIC_API_KEY="$(ANTHROPIC_API_KEY)" \
+		-e GATEWAY_API_KEY="$(GATEWAY_API_KEY)" \
 		--name $(IMAGE_NAME) \
 		$(IMAGE_NAME):latest
 

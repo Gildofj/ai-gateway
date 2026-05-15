@@ -59,7 +59,10 @@ public class FallbackChatClient : DelegatingChatClient
         _logger.LogWarning("Provider {Current} failed. Falling back to {Fallback}. Reason: {Reason}",
             _currentProvider, next.Provider, reason);
 
+        var fallbackOptions = options?.Clone() ?? new ChatOptions();
+        fallbackOptions.ModelId = null;
+
         var fallbackClient = _registry.CreateClient(next.Provider, _complexity);
-        return await fallbackClient.GetResponseAsync(messages, options, cancellationToken);
+        return await fallbackClient.GetResponseAsync(messages, fallbackOptions, cancellationToken);
     }
 }

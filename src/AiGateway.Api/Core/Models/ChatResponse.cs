@@ -24,6 +24,15 @@ public record ChatResponse
 
     [JsonPropertyName("estimatedCost")]
     public decimal? EstimatedCost { get; init; }
+
+    [JsonPropertyName("sessionHit")]
+    public bool? SessionHit { get; init; }
+
+    [JsonPropertyName("appId")]
+    public string? AppId { get; init; }
+
+    [JsonPropertyName("agentScope")]
+    public string? AgentScope { get; init; }
 }
 
 public record TokenUsage(long InputTokens, long OutputTokens, long TotalTokens);

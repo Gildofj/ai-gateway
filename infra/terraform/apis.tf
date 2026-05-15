@@ -10,6 +10,7 @@ locals {
     "run.googleapis.com",
     "secretmanager.googleapis.com",
     "sts.googleapis.com",
+    "firestore.googleapis.com",
   ])
 }
 

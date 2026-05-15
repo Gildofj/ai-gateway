@@ -1,0 +1,34 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+**/publish/
+
+# IDE / editor
+.vs/
+.idea/
+.vscode/
+*.user
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI / docs / agents (not needed inside the image)
+.github/
+.agents/
+.claude/
+docs/
+tests/
+**/*.md
+
+# Local env
+.env
+.env.*
+**/appsettings.Development.json
+**/appsettings.Local.json
+
+# OS
+.DS_Store
+Thumbs.db

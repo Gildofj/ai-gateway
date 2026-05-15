@@ -5,4 +5,5 @@ public record ProviderDescriptor(
     string ApiKey,
     string FastModel,
     string CapableModel,
-    Uri? Endpoint = null);
+    Uri? Endpoint = null,
+    string? EmbeddingModel = "text-embedding-3-small");

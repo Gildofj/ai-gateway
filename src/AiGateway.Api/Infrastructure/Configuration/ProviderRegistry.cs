@@ -2,18 +2,21 @@ using AiGateway.Api.Core.Interfaces;
 using AiGateway.Api.Core.Models;
 using AiGateway.Api.Infrastructure.AiProviders;
 using Microsoft.Extensions.AI;
-using OpenAI;
-using System.ClientModel;
 
 namespace AiGateway.Api.Infrastructure.Configuration;
 
 public class ProviderRegistry : IProviderRegistry
 {
     private readonly List<ProviderDescriptor> _available;
+    private readonly Dictionary<AiProvider, IProviderClientFactory> _factories;
 
-    public ProviderRegistry(IConfiguration configuration, ILogger<ProviderRegistry> logger)
+    public ProviderRegistry(
+        IConfiguration configuration,
+        ILogger<ProviderRegistry> logger,
+        IEnumerable<IProviderClientFactory> factories)
     {
         _available = DiscoverProviders(configuration, logger);
+        _factories = factories.ToDictionary(f => f.Provider);
     }
 
     public IReadOnlyList<ProviderDescriptor> GetAvailable() => _available;
@@ -26,23 +29,14 @@ public class ProviderRegistry : IProviderRegistry
         var descriptor = _available.FirstOrDefault(d => d.Provider == provider)
             ?? _available.First();
 
-        var modelId = complexity == ModelComplexity.High ? descriptor.CapableModel : descriptor.FastModel;
-
-        if (provider == AiProvider.Google)
+        if (!_factories.TryGetValue(descriptor.Provider, out var factory))
         {
-            // Use the native Google AI SDK adapter for .NET (2026 version)
-            return new GenerativeAI.Microsoft.GenerativeAIChatClient(descriptor.ApiKey, modelId)
-                .AddProviderOptimizations(provider.ToString().ToLower());
+            throw new InvalidOperationException(
+                $"No IProviderClientFactory registered for provider {descriptor.Provider}.");
         }
 
-        var credential = new ApiKeyCredential(descriptor.ApiKey);
-        var options = descriptor.Endpoint is not null
-            ? new OpenAIClientOptions { Endpoint = descriptor.Endpoint }
-            : new OpenAIClientOptions();
-
-        var client = new OpenAI.Chat.ChatClient(modelId, credential, options).AsIChatClient();
-
-        return client.AddProviderOptimizations(provider.ToString().ToLower());
+        var client = factory.Create(descriptor, complexity);
+        return client.AddProviderOptimizations(descriptor.Provider.ToString().ToLower());
     }
 
     public IChatClient CreateResilientClient(AiProvider provider, ModelComplexity complexity, ILogger logger)
@@ -61,21 +55,21 @@ public class ProviderRegistry : IProviderRegistry
     {
         var providers = new List<ProviderDescriptor>();
 
-        TryAdd(providers, config, logger, AiProvider.OpenAi,
+        TryAdd(providers, config, AiProvider.OpenAi,
             keyPath: "AI:OpenAi:ApiKey",
             envVar: "OPENAI_API_KEY",
             defaultFast: "gpt-5.4-mini",
             defaultCapable: "gpt-5.5-thinking",
             endpoint: null);
 
-        TryAdd(providers, config, logger, AiProvider.Google,
+        TryAdd(providers, config, AiProvider.Google,
             keyPath: "AI:Google:ApiKey",
             envVar: "GOOGLE_API_KEY",
             defaultFast: "gemini-3.1-flash-lite",
             defaultCapable: "gemini-3.1-pro",
-            endpoint: new Uri("https://generativelanguage.googleapis.com/v1beta/openai"));
+            endpoint: null);
 
-        TryAdd(providers, config, logger, AiProvider.Anthropic,
+        TryAdd(providers, config, AiProvider.Anthropic,
             keyPath: "AI:Anthropic:ApiKey",
             envVar: "ANTHROPIC_API_KEY",
             defaultFast: "claude-haiku-4-5",
@@ -98,7 +92,6 @@ public class ProviderRegistry : IProviderRegistry
     private static void TryAdd(
         List<ProviderDescriptor> providers,
         IConfiguration config,
-        ILogger<ProviderRegistry> logger,
         AiProvider provider,
         string keyPath,
         string envVar,
@@ -106,24 +99,14 @@ public class ProviderRegistry : IProviderRegistry
         string defaultCapable,
         Uri? endpoint)
     {
-        // In ASP.NET Core, IConfiguration automatically includes environment variables.
-        // However, if appsettings.json has "ApiKey": "", it returns an empty string,
-        // which prevents the ?? operator from falling back to the environment variable.
         var apiKey = config[keyPath];
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             apiKey = config[envVar];
         }
 
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            return;
-        }
-
-        if (apiKey.Contains("placeholder", StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(apiKey)) return;
+        if (apiKey.Contains("placeholder", StringComparison.OrdinalIgnoreCase)) return;
 
         var fastModel = config[$"{keyPath.Replace(":ApiKey", ":FastModel")}"] ?? defaultFast;
         var capableModel = config[$"{keyPath.Replace(":ApiKey", ":CapableModel")}"] ?? defaultCapable;

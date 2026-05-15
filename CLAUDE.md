@@ -15,6 +15,30 @@ Before starting any non-trivial task, adopt the appropriate agent from `.agents/
 | Reducing token usage, tuning heuristics, context pruning | `token-economy-tuner` | `tune-token-economy` |
 | Debugging routing, provider selection, fallback, skills | `pipeline-debugger` | `debug-pipeline` |
 
+## Code Style — Non-negotiable
+
+**Comments only when strictly necessary. Default is zero.**
+
+A comment may exist only when *why* the code is the way it is would not be obvious to a future reader who has the diff and the git log — a hidden constraint, a subtle invariant, a workaround for a specific bug, or behavior that would surprise someone reading the code cold.
+
+Do **not** write:
+- Section banners (`// ---- setup ----`, `// === handlers ===`)
+- Restatements of what the code does (`// validate input`, `// loop through items`, `// returns the user`)
+- Task or PR context (`// added for the X flow`, `// fixes #123`, `// see ticket Y`) — that belongs in the commit message
+- Block comments above straightforward methods, classes, or properties
+- Inline notes about removed code (`// previously did X`)
+- Apologetic or filler comments (`// TODO: refactor later`, `// hacky but works`)
+
+Self-explanatory identifiers carry the meaning. If you feel a comment is needed, first try renaming a variable, extracting a method, or restructuring — comments are the last resort, not the first.
+
+**Exceptions (these are not "comments" in the sense of this rule):**
+- `///` XML doc comments on **public** APIs consumed outside the assembly
+- Makefile `##` help text (renders in `make help`)
+- File-level header that explains a non-obvious file purpose (e.g. middleware ordering constraints)
+- License headers, if the repo requires them
+
+Before writing any comment, ask: "Would removing this confuse a careful reader?" If no, delete it.
+
 ## Commands
 
 ```bash
@@ -59,13 +83,15 @@ No test projects exist yet. The solution file is `AiGateway.slnx`.
 
 ```
 POST /api/v1/chat/completions
-  → ITaskAnalyzer        — ONE AI call → TaskAnalysis{Domain, Complexity}
-                           (or zero cost if both are explicit in the request)
-  → AgentSelector        — picks domain agent → RoutingDecision{provider, systemPrompt, skills}
+  → AppContextMiddleware — Extract X-App-Id
+  → ISessionStore        — Load session if sessionId provided
+  → ITaskAnalyzer        — Reuse session decision or ONE AI call
+  → AgentSelector        — Picks domain agent (Custom Agent ID → app → global → built-in)
   → IPromptEnhancer      — rewrites prompt with domain hint (optional)
   → IModelRouter         — creates IChatClient wrapped in FallbackChatClient
-  → AgentOptimizationClient — injects system prompt fragment, prunes context to last 6 msgs
+  → AgentOptimizationClient — injects system prompt fragment, prunes context
   → provider call        (OpenAI / Gemini / Anthropic)
+  → ISessionStore        — Save turn to history
 ```
 
 ### Layer Boundaries
@@ -126,13 +152,37 @@ Skills are only injected when listed in the domain agent's `RequiredSkills`. `Me
 
 ## ChatRequest Fields
 
-`prompt` (required), `domain?` (TaskDomain override), `complexity?` (ModelComplexity override), `provider?` (AiProvider override), `enablePromptEnhancement` (default true), `useSkills` (default true).
+`prompt` (required), `domain?` (TaskDomain override), `complexity?` (ModelComplexity override), `provider?` (AiProvider override), `enablePromptEnhancement` (default true), `useSkills` (default true), `agentId?` (Custom agent override), `sessionId?` (Correlation id), `appId?` (Multi-app override).
 
 When `domain` and `complexity` are both provided, the AI analysis call is skipped entirely.
 
 ## ChatResponse Fields
 
-`completion`, `modelUsed`, `providerUsed`, `domain`, `enhancedPrompt?`, `usage?`, `estimatedCost?`
+`completion`, `modelUsed`, `providerUsed`, `domain`, `enhancedPrompt?`, `usage?`, `estimatedCost?`, `sessionHit?`, `appId`, `agentScope?`.
+
+## Multi-app & Persistence
+
+The gateway supports multiple apps via the `X-App-Id` header (default: "default").
+
+### Resources & Scoping
+
+- **Memory** (`/api/v1/memory`): Key-value store.
+- **Agents** (`/api/v1/agents`): Custom domain agents.
+- **Sessions** (`/api/v1/sessions`): Conversational context and routing decision cache.
+
+| Resource | Scope | Sharing |
+|---|---|---|
+| Memory | `app` (default) \| `global` | Global is read-only for non-owners |
+| Agents | `app` (default) \| `global` | Global is read-only for non-owners |
+| Sessions | Always `app` | No cross-app sharing |
+
+### Endpoints
+
+- `POST /api/v1/chat/completions`: Chat with session and custom agent support.
+- `GET/PUT/DELETE /api/v1/memory/{key}`: Manage persistent memory.
+- `POST /api/v1/embeddings`: Generate embeddings with cross-app caching.
+- `GET/POST/PUT/DELETE /api/v1/agents`: Manage custom domain agents.
+- `GET/DELETE /api/v1/sessions/{id}`: Inspect or end sessions.
 
 ## Configuration
 
@@ -143,6 +193,7 @@ OPENAI_API_KEY      → AI:OpenAi:ApiKey
 GOOGLE_API_KEY      → AI:Google:ApiKey
 ANTHROPIC_API_KEY   → AI:Anthropic:ApiKey
 GATEWAY_API_KEY     → required X-API-Key header on /api/*  (skipped if unset in Development)
+GCP_PROJECT_ID      → Firestore project for persistence
 ```
 
 Default model names are set in `appsettings.json` under `AI:{Provider}:FastModel` / `CapableModel` and can be overridden per environment. See `.env.example` for all available variables.

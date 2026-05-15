@@ -1,6 +1,223 @@
-@AiGateway.Api_HostAddress = http://localhost:5042
+@host = http://localhost:8080
+@key = 123
 
-GET {{AiGateway.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+# AI Gateway — local validation matrix
+# Production parity: targets the `make docker-run` container on :8080
+# (ASPNETCORE_ENVIRONMENT=Production, X-API-Key enforced, same image as Cloud Run).
+#
+# Usage:
+#   1. Fill `.env` with all 3 provider keys + a strong GATEWAY_API_KEY
+#   2. `make docker-run` in another terminal
+#   3. Paste the GATEWAY_API_KEY into `@key` above (or use the env-file feature
+#      of your IDE: Rider → http-client.env.json; VS Code REST Client → environments)
+#   4. "Send Request" above each block
+#
+# For `dotnet run` instead of docker, change @host to http://localhost:5042
 
 ###
+# 1. Auth: missing X-API-Key → 401
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+
+{
+  "prompt": "ping"
+}
+
+###
+# 2. Auth: wrong X-API-Key → 401 (timing-safe compare)
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: wrong-key
+
+{
+  "prompt": "ping"
+}
+
+###
+# 3. Heuristic fast-path — prompt < 25 chars hits the free classifier
+#    (no AI call for analysis). Expect response.domain = "Conversation".
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: {{key}}
+
+{
+  "prompt": "oi",
+  "complexity": "Low",
+  "enablePromptEnhancement": false
+}
+
+###
+# 4a. Coding agent → preferred provider Anthropic, skills [code, memory]
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: {{key}}
+
+{
+  "prompt": "Write a Python function that reverses a string without using slicing.",
+  "domain": "Coding",
+  "complexity": "Low"
+}
+
+###
+# 4b. Research agent → preferred provider Google, skills [search]
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: {{key}}
+
+{
+  "prompt": "Summarize the current consensus on the Mediterranean diet and longevity in 3 bullets.",
+  "domain": "Research",
+  "complexity": "Low"
+}
+
+###
+# 4c. Writing agent → preferred provider Anthropic, skills [memory]
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: {{key}}
+
+{
+  "prompt": "Write a 4-line poem about a quiet morning at the harbor.",
+  "domain": "Writing",
+  "complexity": "Low"
+}
+
+###
+# 4d. Analysis agent
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: {{key}}
+
+{
+  "prompt": "Compare REST vs gRPC for inter-service comms in exactly 3 bullets.",
+  "domain": "Analysis",
+  "complexity": "Low"
+}
+
+###
+# 4e. Math agent → preferred provider OpenAi
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: {{key}}
+
+{
+  "prompt": "Solve for x: 3x + 7 = 22. Show steps.",
+  "domain": "Math",
+  "complexity": "Low"
+}
+
+###
+# 4f. Translation agent → preferred provider Google
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: {{key}}
+
+{
+  "prompt": "Translate to Portuguese (Brazil): 'See you tomorrow morning.'",
+  "domain": "Translation",
+  "complexity": "Low"
+}
+
+###
+# 4g. General agent → preferred provider OpenAi
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: {{key}}
+
+{
+  "prompt": "Give me one surprising fact about octopuses.",
+  "domain": "General",
+  "complexity": "Low"
+}
+
+###
+# 5. Override: both domain + complexity explicit → skips the analyzer AI call
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: {{key}}
+
+{
+  "prompt": "Say hi.",
+  "domain": "Conversation",
+  "complexity": "Low",
+  "enablePromptEnhancement": false
+}
+
+###
+# 6. Structured JSON output with JSON Schema
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: {{key}}
+
+{
+  "prompt": "Extract from: 'Order #1234 placed on 2025-12-01 by Alice for $42.99.'",
+  "domain": "Analysis",
+  "complexity": "Low",
+  "enablePromptEnhancement": false,
+  "responseMimeType": "application/json",
+  "responseSchema": {
+    "type": "object",
+    "properties": {
+      "orderId":  { "type": "string" },
+      "customer": { "type": "string" },
+      "amount":   { "type": "number" },
+      "date":     { "type": "string" }
+    },
+    "required": ["orderId", "customer", "amount", "date"]
+  }
+}
+
+###
+# 7. System instruction passthrough (caller controls tone)
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: {{key}}
+
+{
+  "prompt": "What is 2+2?",
+  "domain": "Conversation",
+  "complexity": "Low",
+  "systemInstruction": "Always answer in exactly one word.",
+  "enablePromptEnhancement": false
+}
+
+###
+# 8. Provider override → force OpenAi even if domain prefers another
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: {{key}}
+
+{
+  "prompt": "Hello.",
+  "domain": "Conversation",
+  "complexity": "Low",
+  "provider": "OpenAi",
+  "enablePromptEnhancement": false
+}
+
+###
+# 9. Skills disabled — same domain, no tools injected
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: {{key}}
+
+{
+  "prompt": "Briefly: what is dependency injection?",
+  "domain": "Coding",
+  "complexity": "Low",
+  "useSkills": false
+}
+
+###
+# 10. Fallback resilience (run separately)
+#     Stop the container, set ANTHROPIC_API_KEY=sk-broken in .env, `make docker-run`
+#     again, then fire this. Expect providerUsed = "OpenAi" (CodingAgent's second choice).
+POST {{host}}/api/v1/chat/completions
+Content-Type: application/json
+X-API-Key: {{key}}
+
+{
+  "prompt": "Refactor this Python: def add(a,b): return a+b",
+  "domain": "Coding",
+  "complexity": "Low"
+}

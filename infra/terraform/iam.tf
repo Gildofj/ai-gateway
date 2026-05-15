@@ -17,6 +17,7 @@ locals {
     "roles/secretmanager.secretAccessor",
     "roles/secretmanager.admin",
     "roles/logging.logWriter",
+    "roles/datastore.user",
   ])
 }
 

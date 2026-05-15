@@ -31,8 +31,8 @@ resource "google_billing_budget" "free_tier_guardrail" {
 
   amount {
     specified_amount {
-      currency_code = "USD"
-      units         = tostring(var.monthly_budget_usd)
+      currency_code = "BRL"
+      units         = "10"
     }
   }
 
